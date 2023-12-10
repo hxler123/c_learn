@@ -23,11 +23,14 @@ enum {
     LEPT_PARSE_EXPECT_VALUE,
     LEPT_PARSE_INVALID_VALUE,
     LEPT_PARSE_ROOT_NOT_SINGULAR,
-    LEPT_PARSE_NUMBER_TOO_BIG
+    LEPT_PARSE_NUMBER_TOO_BIG,
+    LEPT_PARSE_INVALID_STRING_CHAR
 };
 
 int lept_parse(lept_value* v, const char* json);
 lept_type lept_get_type(lept_value* v);
 double lept_get_number(lept_value* v);
+char* lept_get_string(lept_value* v);
+int lept_get_string_length(lept_value* v);
 
 #endif /* LEPTJSON_H__ */
