@@ -57,33 +57,6 @@ static void test_parse_null() {
     EXPECT_EQ_INT(LEPT_NULL, lept_get_type(&v));
 }
 
-static void test_parse_expect_value() {
-    TEST_ERROR(LEPT_PARSE_EXPECT_VALUE, "");
-    TEST_ERROR(LEPT_PARSE_EXPECT_VALUE, " ");
-}
-
-static void test_parse_invalid_value() {
-    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "nul");
-    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "?");
-
-    /* invalid number */
-    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "+0");
-    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "+1");
-    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "1.");
-    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, ".1");
-    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "inf");
-    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "INF");
-    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "1.2E");
-    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "1.2e");
-}
-
-static void test_parse_root_not_singular() {
-    TEST_ERROR(LEPT_PARSE_ROOT_NOT_SINGULAR, "null x");
-    TEST_ERROR(LEPT_PARSE_ROOT_NOT_SINGULAR, "\"hh\0ll\"");
-}
-
-
-
 static void test_parse_boolean(){
     lept_value v;
     v.type = LEPT_TRUE;
@@ -125,8 +98,74 @@ static void test_parse_string() {
     TEST_STRING("\f", "\"\\f\"");
     TEST_STRING("\r\n", "\"\\r\\n\"");
     TEST_STRING("f\"", "\"f\\\"\"");
+    TEST_STRING("f\"", "\"f\\\"\"");
+    TEST_STRING("这", "\"\\u8fd9\"");
+    TEST_STRING("\x24", "\"\\u0024\"");         /* Dollar sign U+0024 */
+    TEST_STRING("\xC2\xA2", "\"\\u00A2\"");     /* Cents sign U+00A2 */
+    TEST_STRING("\xE2\x82\xAC", "\"\\u20AC\""); /* Euro sign U+20AC */
+    TEST_STRING("\xF0\x9D\x84\x9E", "\"\\uD834\\uDD1E\"");  /* G clef sign U+1D11E */
+    TEST_STRING("\xF0\x9D\x84\x9E", "\"\\ud834\\udd1e\"");  /* G clef sign U+1D11E */
+    TEST_STRING("Hello\0World", "\"Hello\\u0000World\""); // memcmp 
 }
 
+static void test_parse_expect_value() {
+    TEST_ERROR(LEPT_PARSE_EXPECT_VALUE, "");
+    TEST_ERROR(LEPT_PARSE_EXPECT_VALUE, " ");
+}
+
+static void test_parse_invalid_value() {
+    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "nul");
+    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "?");
+
+    /* invalid number */
+    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "+0");
+    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "+1");
+    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "1.");
+    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, ".1");
+    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "inf");
+    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "INF");
+    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "1.2E");
+    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "1.2e");
+}
+
+static void test_parse_root_not_singular() {
+    TEST_ERROR(LEPT_PARSE_ROOT_NOT_SINGULAR, "null x");
+    TEST_ERROR(LEPT_PARSE_ROOT_NOT_SINGULAR, "\"hh\0ll\"");
+}
+
+static void test_parse_invalid_string_escape() {
+    TEST_ERROR(LEPT_PARSE_INVALID_STRING_ESCAPE, "\"\\l\"");
+    TEST_ERROR(LEPT_PARSE_INVALID_STRING_ESCAPE, "\"\\tt\\l\"");
+    TEST_ERROR(LEPT_PARSE_INVALID_STRING_ESCAPE, "\"\\u023f\\k\"");
+}
+
+static void test_parse_invalid_unicode_surrogate() {
+    TEST_ERROR(LEPT_PARSE_INVALID_UNICODE_SURROGATE, "\"\\uD800\\uD800\"");
+    TEST_ERROR(LEPT_PARSE_INVALID_UNICODE_SURROGATE, "\"\\u1234\\uD800\"");
+    TEST_ERROR(LEPT_PARSE_INVALID_UNICODE_SURROGATE, "\"\\u1234\\uDBFF\"");
+    TEST_ERROR(LEPT_PARSE_INVALID_UNICODE_SURROGATE, "\"\\uDBFF\\uE000\"");
+    TEST_ERROR(LEPT_PARSE_INVALID_UNICODE_SURROGATE, "\"\\uDBFF\\uDBFF\"");
+    TEST_ERROR(LEPT_PARSE_INVALID_UNICODE_SURROGATE, "\"\\uDBFFk\"");
+    TEST_ERROR(LEPT_PARSE_INVALID_UNICODE_SURROGATE, "\"\\uDBFF\\o\"");
+    TEST_ERROR(LEPT_PARSE_INVALID_UNICODE_SURROGATE, "\"\\uD800\\k\"");
+}
+
+static void test_parse_invalid_unicode_hex() {
+    TEST_ERROR(LEPT_PARSE_INVALID_UNICODE_HEX, "\"\\u09\"");
+    TEST_ERROR(LEPT_PARSE_INVALID_UNICODE_HEX, "\"\\u0\"");
+    TEST_ERROR(LEPT_PARSE_INVALID_UNICODE_HEX, "\"\\u110\"");
+    TEST_ERROR(LEPT_PARSE_INVALID_UNICODE_HEX, "\"\\um110\"");
+    TEST_ERROR(LEPT_PARSE_INVALID_UNICODE_HEX, "\"\\u\\u1234\"");
+    TEST_ERROR(LEPT_PARSE_INVALID_UNICODE_HEX, "\"\\uD800\\ukmj1\"");
+    TEST_ERROR(LEPT_PARSE_INVALID_UNICODE_HEX, "\"\\uD800\\u\\u\"");
+    TEST_ERROR(LEPT_PARSE_INVALID_UNICODE_HEX, "\"\\uD800\\u01\"");
+    TEST_ERROR(LEPT_PARSE_INVALID_UNICODE_HEX, "\"\\uD800\\u000\"");
+}
+
+static void test_parse_invalid_string_char() {
+    TEST_ERROR(LEPT_PARSE_INVALID_STRING_CHAR, "\"\x01\"");
+    TEST_ERROR(LEPT_PARSE_INVALID_STRING_CHAR, "\"\x1F\"");
+}
 
 static void test_parse() {
     test_parse_null();
@@ -136,7 +175,18 @@ static void test_parse() {
     test_parse_boolean();
     test_parse_number();
     test_parse_string();
+    test_parse_invalid_string_escape();
+    test_parse_invalid_unicode_surrogate();
+    test_parse_invalid_unicode_hex();
+    test_parse_invalid_string_char();
 }
+
+
+
+
+
+
+
 
 int main() {
     test_parse();
