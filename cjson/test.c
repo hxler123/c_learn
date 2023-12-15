@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "leptjson.h"
-// #include "leptjson.c"
+#include "leptjson.c"
 
 #define EXPECT_EQ_BASE(equality, expect, actual, format) \
     test_count++;\
@@ -153,6 +153,69 @@ static void test_parse_array() {
 
 }
 
+static void test_parse_object() {
+    lept_value kv;
+    kv.type = LEPT_FALSE;
+    const char json[] = "{ \
+    \"a\" : false, \
+    \"key\" : true, \
+    \"f\" : null, \
+    \"array\" : [12, 22, 43], \
+    \"s\" : \"string\", \
+    \"o\" : {\"sub\": 567} \
+    }";
+    EXPECT_EQ_INT(LEPT_PARSE_OK, lept_parse(&kv, json));
+    EXPECT_EQ_INT(LEPT_OBJECT, lept_get_type(&kv));
+    EXPECT_EQ_SIZE_T(6, lept_get_object_size(&kv));
+    lept_member* m = lept_get_object_member(&kv, 0);
+    lept_value* v = lept_get_member_value(m);
+    EXPECT_EQ_STRING("a", lept_get_member_key(m), lept_get_member_key_length(m));
+    EXPECT_EQ_INT(LEPT_FALSE, lept_get_type(v));
+
+    m = lept_get_object_member(&kv, 1);
+    v = lept_get_member_value(m);
+    EXPECT_EQ_STRING("key", lept_get_member_key(m), lept_get_member_key_length(m));
+    EXPECT_EQ_INT(LEPT_TRUE, lept_get_type(v));
+
+    m = lept_get_object_member(&kv, 2);
+    v = lept_get_member_value(m);
+    EXPECT_EQ_STRING("f", lept_get_member_key(m), lept_get_member_key_length(m));
+    EXPECT_EQ_INT(LEPT_NULL, lept_get_type(v));
+
+    m = lept_get_object_member(&kv, 3);
+    v = lept_get_member_value(m);
+    EXPECT_EQ_STRING("array", lept_get_member_key(m), lept_get_member_key_length(m));
+    EXPECT_EQ_INT(LEPT_ARRAY, lept_get_type(v));
+    
+    EXPECT_EQ_SIZE_T(3, lept_get_array_size(v));
+    lept_value* t = lept_get_array_element(v, 0);
+    EXPECT_EQ_DOUBLE(12.0, lept_get_number(lept_get_array_element(v, 0)));
+    EXPECT_EQ_DOUBLE(22.0, lept_get_number(lept_get_array_element(v, 1)));
+    EXPECT_EQ_DOUBLE(43.0, lept_get_number(lept_get_array_element(v, 2)));
+
+    m = lept_get_object_member(&kv, 4);
+    v = lept_get_member_value(m);
+    EXPECT_EQ_STRING("s", lept_get_member_key(m), lept_get_member_key_length(m));
+    EXPECT_EQ_INT(LEPT_STRING, lept_get_type(v));
+    EXPECT_EQ_STRING("string", lept_get_string(v) , lept_get_string_length(v));
+
+    m = lept_get_object_member(&kv, 5);
+    v = lept_get_member_value(m);
+    EXPECT_EQ_STRING("o", lept_get_member_key(m), lept_get_member_key_length(m));
+    EXPECT_EQ_INT(LEPT_OBJECT, lept_get_type(v));
+
+    m = lept_get_object_member(v, 0);
+    v = lept_get_member_value(m);
+    EXPECT_EQ_STRING("sub", lept_get_member_key(m), lept_get_member_key_length(m));
+    EXPECT_EQ_DOUBLE(567.0, lept_get_number(v));
+
+    kv.type = LEPT_FALSE;
+    const char json2[] = "{}";
+    EXPECT_EQ_INT(LEPT_PARSE_OK, lept_parse(&kv, json2));
+    EXPECT_EQ_INT(LEPT_OBJECT, lept_get_type(&kv));
+    EXPECT_EQ_SIZE_T(0, lept_get_object_size(&kv));
+}
+
 static void test_parse_expect_value() {
     TEST_ERROR(LEPT_PARSE_EXPECT_VALUE, "");
     TEST_ERROR(LEPT_PARSE_EXPECT_VALUE, " ");
@@ -218,6 +281,20 @@ static void test_parse_miss_comma_or_square_bracket() {
     TEST_ERROR(LEPT_PARSE_MISS_COMMA_OR_SQUARE_BRACKET, "[1");
 }
 
+static void test_parse_miss_colon() {
+    TEST_ERROR(LEPT_PARSE_MESS_COLON, "{\"kl\"}");
+    TEST_ERROR(LEPT_PARSE_MESS_COLON, "{ \"kl\" : 123 , \"12\": false, \"ko\"}");
+}
+
+static void test_parse_miss_quotation_or_curly_bracket() {
+    TEST_ERROR(LEPT_PARSE_MISS_QUOTAION_OR_CURLY_BRACKET, "{\"p\":false \"op\"}");
+    TEST_ERROR(LEPT_PARSE_MISS_QUOTAION_OR_CURLY_BRACKET, "{\"p\":false ");
+}
+
+static void test_parse_object_invalid_key() {
+    TEST_ERROR(LEPT_PARSE_OBJECT_INVALID_KEY, "{1234 }");
+}
+
 static void test_parse() {
     test_parse_null();
     test_parse_expect_value();
@@ -232,6 +309,10 @@ static void test_parse() {
     test_parse_invalid_string_char();
     test_parse_miss_comma_or_square_bracket();
     test_parse_array();
+    test_parse_miss_colon();
+    test_parse_miss_quotation_or_curly_bracket();
+    test_parse_object();
+    test_parse_object_invalid_key();
 }
 
 
