@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "leptjson.h"
-#include "leptjson.c"
+// #include "leptjson.c"
 
 #define EXPECT_EQ_BASE(equality, expect, actual, format) \
     test_count++;\
